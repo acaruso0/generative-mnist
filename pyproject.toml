@@ -1,0 +1,23 @@
+[project]
+name = "generative-mnist"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Alessandro Caruso", email = "research@acaruso.net" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "einops>=0.8.2",
+    "tensorboard>=2.21.0",
+    "torch>=2.15.0",
+    "torchvision>=0.29.2",
+    "tqdm>=4.70.1",
+]
+
+[project.scripts]
+generative-mnist = "generative_mnist:main"
+
+[build-system]
+requires = ["uv_build>=0.13.8,<0.14.0"]
+build-backend = "uv_build"
