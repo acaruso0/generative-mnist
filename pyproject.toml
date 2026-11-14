@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "einops>=0.8.2",
+    "matplotlib>=3.11.2",
     "tensorboard>=2.21.0",
     "torch>=2.15.0",
     "torchvision>=0.29.2",
