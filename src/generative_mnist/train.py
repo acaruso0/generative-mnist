@@ -18,6 +18,17 @@ def sample_path_and_velocity(x0, x1, t):
     return path, velocity
 
 
+@torch.inference_mode()
+def euler_method(x0, c, model, steps=100):
+    x = x0.clone()
+
+    for k in range(steps):
+        t = torch.ones(x.shape[0]) * k / steps
+        x += (1 / steps) * model(x, t, c)
+
+    return x
+
+
 loss_fn = torch.nn.MSELoss()
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4)
@@ -55,7 +66,7 @@ timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 writer = SummaryWriter(f'runs/digits_trainer_{timestamp}')
 
 epoch_number = 0
-EPOCHS = 100
+EPOCHS = 20
 for epoch in range(EPOCHS):
     print(f'EPOCH {epoch_number + 1}:')
 
@@ -67,6 +78,25 @@ for epoch in range(EPOCHS):
     writer.flush()
 
     epoch_number += 1
+
+labels = torch.arange(10).repeat_interleave(5)
+inputs = torch.normal(0, 1, size=(labels.shape[0], 1, 28, 28))
+
+with torch.inference_mode():
+    x = euler_method(inputs, labels, model)
+
+print(x)
+print(x.shape)
+
+import torchvision
+import matplotlib.pyplot as plt
+
+from .utils import matplotlib_imshow
+
+img_grid = torchvision.utils.make_grid(x, nrow=5)
+matplotlib_imshow(img_grid, one_channel=True)
+
+plt.show()
 
 # saved_model = UNet()
 # saved_model.load_state_dict(torch.load(PATH))
