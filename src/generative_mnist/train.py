@@ -1,13 +1,10 @@
 import torch
-
 from torch.utils.tensorboard import SummaryWriter
+from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from datetime import datetime
 
 from .data import training_loader
 from .model import UNet
-
-model = UNet()
-
 
 def sample_path_and_velocity(x0, x1, t):
     t = t[:, None, None, None]
@@ -29,9 +26,11 @@ def euler_method(x0, c, model, steps=100):
     return x
 
 
-loss_fn = torch.nn.MSELoss()
+model = UNet()
 
+loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4)
+ema = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
 def train_one_epoch(epoch_index, tb_writer):
     epoch_loss = 0.
@@ -56,6 +55,7 @@ def train_one_epoch(epoch_index, tb_writer):
         loss.backward()
 
         optimizer.step()
+        ema.update_parameters(model)
 
         epoch_loss += loss.item() * x1.shape[0]
 
@@ -82,8 +82,9 @@ for epoch in range(EPOCHS):
 labels = torch.arange(10).repeat_interleave(5)
 inputs = torch.normal(0, 1, size=(labels.shape[0], 1, 28, 28))
 
+ema.module.eval()
 with torch.inference_mode():
-    x = euler_method(inputs, labels, model)
+    x = euler_method(inputs, labels, ema.module)
 
 print(x)
 print(x.shape)
