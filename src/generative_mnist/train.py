@@ -45,12 +45,12 @@ if __name__ == "__main__":
             c = c.to(device)
             t = t.to(device)
 
-            path, target = sample_path_and_velocity(x0, x1, t)
+            xt, vt = sample_path_and_velocity(x0, x1, t)
 
             optimizer.zero_grad()
-            outputs = model(x0, t, c)
+            out = model(xt, t, c)
 
-            loss = loss_fn(outputs, target)
+            loss = loss_fn(out, vt)
             loss.backward()
 
             optimizer.step()
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     writer = SummaryWriter(f'runs/digits_trainer_{timestamp}')
 
     epoch_number = 0
-    EPOCHS = 2
+    EPOCHS = 100
     for epoch in range(EPOCHS):
         print(f'EPOCH {epoch_number + 1}:')
 
