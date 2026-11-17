@@ -1,3 +1,4 @@
+import os
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
@@ -15,95 +16,73 @@ def sample_path_and_velocity(x0, x1, t):
     return path, velocity
 
 
-@torch.inference_mode()
-def euler_method(x0, c, model, steps=100):
-    x = x0.clone()
+if __name__ == "__main__":
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f'Training on {device}')
 
-    for k in range(steps):
-        t = (torch.ones(x.shape[0]) * k / steps).to(x.device)
-        x += (1 / steps) * model(x, t, c)
+    model = UNet().to(device)
 
-    return x
+    loss_fn = torch.nn.MSELoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4)
+    ema = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
+    def train_one_epoch(epoch_index, tb_writer):
+        epoch_loss = 0.
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f'Running on {device}')
+        for i, data in enumerate(training_loader):
+            x1, c = data
+            c[torch.rand(c.shape, device=c.device) < 0.1] = 10
 
-model = UNet().to(device)
+            batch = x1.shape[0]
+            d1 = x1.shape[-2]
+            d2 = x1.shape[-1]
 
-loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4)
-ema = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
+            x0 = torch.normal(0, 1, size=(batch, 1, d1, d2))
+            t = torch.rand(batch)
 
-def train_one_epoch(epoch_index, tb_writer):
-    epoch_loss = 0.
+            x1 = x1.to(device)
+            x0 = x0.to(device)
+            c = c.to(device)
+            t = t.to(device)
 
-    for i, data in enumerate(training_loader):
-        x1, c = data
-        c[torch.rand(c.shape, device=c.device) < 0.1] = 10
+            path, target = sample_path_and_velocity(x0, x1, t)
 
-        batch = x1.shape[0]
-        d1 = x1.shape[-2]
-        d2 = x1.shape[-1]
+            optimizer.zero_grad()
+            outputs = model(x0, t, c)
 
-        x0 = torch.normal(0, 1, size=(batch, 1, d1, d2))
-        t = torch.rand(batch)
+            loss = loss_fn(outputs, target)
+            loss.backward()
 
-        x1 = x1.to(device)
-        x0 = x0.to(device)
-        c = c.to(device)
-        t = t.to(device)
+            optimizer.step()
+            ema.update_parameters(model)
 
-        path, target = sample_path_and_velocity(x0, x1, t)
+            epoch_loss += loss.item() * x1.shape[0]
 
-        optimizer.zero_grad()
-        outputs = model(x0, t, c)
-
-        loss = loss_fn(outputs, target)
-        loss.backward()
-
-        optimizer.step()
-        ema.update_parameters(model)
-
-        epoch_loss += loss.item() * x1.shape[0]
-
-    return epoch_loss / len(training_loader.dataset)
+        return epoch_loss / len(training_loader.dataset)
 
 
-timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-writer = SummaryWriter(f'runs/digits_trainer_{timestamp}')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    writer = SummaryWriter(f'runs/digits_trainer_{timestamp}')
 
-epoch_number = 0
-EPOCHS = 20
-for epoch in range(EPOCHS):
-    print(f'EPOCH {epoch_number + 1}:')
+    epoch_number = 0
+    EPOCHS = 2
+    for epoch in range(EPOCHS):
+        print(f'EPOCH {epoch_number + 1}:')
 
-    model.train(True)
-    avg_loss = train_one_epoch(epoch_number, writer)
+        model.train(True)
+        avg_loss = train_one_epoch(epoch_number, writer)
 
-    print(f'LOSS train {avg_loss}')
-    writer.add_scalar('Loss/train', avg_loss, epoch_number + 1)
-    writer.flush()
+        print(f'LOSS train {avg_loss}')
+        writer.add_scalar('Loss/train', avg_loss, epoch_number + 1)
+        writer.flush()
 
-    epoch_number += 1
+        epoch_number += 1
 
-labels = torch.arange(10).repeat_interleave(5).to(device)
-inputs = torch.normal(0, 1, size=(labels.shape[0], 1, 28, 28)).to(device)
-
-ema.module.eval()
-with torch.inference_mode():
-    x = euler_method(inputs, labels, ema.module, steps=250)
-
-import torchvision
-import matplotlib.pyplot as plt
-
-from .utils import matplotlib_imshow
-
-x = x.cpu()
-img_grid = torchvision.utils.make_grid(x, nrow=5)
-matplotlib_imshow(img_grid, one_channel=True)
-
-plt.show()
-
-# saved_model = UNet()
-# saved_model.load_state_dict(torch.load(PATH))
+    os.makedirs(f'ckpts/model_{timestamp}', exist_ok=True)
+    model_path = f'ckpts/model_{timestamp}/model_{timestamp}_{epoch_number}'
+    torch.save({
+        "model": model.state_dict(),
+        "ema": ema.module.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "epoch": epoch_number,
+    }, model_path)
