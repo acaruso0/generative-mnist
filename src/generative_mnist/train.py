@@ -6,14 +6,7 @@ from datetime import datetime
 
 from .data import training_loader
 from .model import UNet
-
-def sample_path_and_velocity(x0, x1, t):
-    t = t[:, None, None, None]
-
-    path = (1 - t)*x0 + t*x1
-    velocity = x1 - x0
-
-    return path, velocity
+from .sampling import sample_path_and_velocity
 
 
 if __name__ == "__main__":
@@ -26,7 +19,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4)
     ema = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
-    def train_one_epoch(epoch_index, tb_writer):
+    def train_one_epoch():
         epoch_loss = 0.
 
         for i, data in enumerate(training_loader):
