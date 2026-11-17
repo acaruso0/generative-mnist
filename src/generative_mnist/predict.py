@@ -9,11 +9,15 @@ from .utils import matplotlib_imshow
 
 @torch.inference_mode()
 def euler_method(x0, c, model, steps=100):
+    w = 5.0
     x = x0.clone()
+    null_labels = 10 * torch.ones_like(c).to(device)
 
     for k in range(steps):
         t = (torch.ones(x.shape[0]) * k / steps).to(x.device)
-        x += (1 / steps) * model(x, t, c)
+        v_c = model(x, t, c)
+        v_u = model(x, t, null_labels)
+        x += (1 / steps) * (v_u + w * (v_c - v_u))
 
     return x
 
