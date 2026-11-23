@@ -1,3 +1,4 @@
+import sys
 import os
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -6,13 +7,21 @@ from datetime import datetime
 
 from .data import training_loader
 from .model import UNet
-from .sampling import sample_path_and_velocity
+from .sampling import DiffusionSampler, FlowSampler
 
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Training on {device}')
 
+    arch = sys.argv[1]
+    assert(arch == '--diffusion' or arch == '--flow')
+    if arch == '--diffusion':
+        steps = 1000
+        betas = torch.linspace(1e-4, 0.02, steps)
+        sampler = DiffusionSampler(steps, betas)
+    else if arch == '--flow':
+        sampler = FlowSampler()
     model = UNet().to(device)
 
     loss_fn = torch.nn.MSELoss()
@@ -23,33 +32,23 @@ if __name__ == "__main__":
         epoch_loss = 0.
 
         for i, data in enumerate(training_loader):
-            x1, c = data
-            c[torch.rand(c.shape, device=c.device) < 0.1] = 10
+            inputs, labels = data
+            labels[torch.rand(labels.shape, device=labels.device) < 0.1] = 10
 
-            batch = x1.shape[0]
-            d1 = x1.shape[-2]
-            d2 = x1.shape[-1]
+            inputs, labels = inputs.to(device), labels.to(device)
 
-            x0 = torch.normal(0, 1, size=(batch, 1, d1, d2))
-            t = torch.rand(batch)
-
-            x1 = x1.to(device)
-            x0 = x0.to(device)
-            c = c.to(device)
-            t = t.to(device)
-
-            xt, vt = sample_path_and_velocity(x0, x1, t)
+            path, target = sampler.sample(inputs)
 
             optimizer.zero_grad()
-            out = model(xt, t, c)
+            outputs = model(path, time, labels)
 
-            loss = loss_fn(out, vt)
+            loss = loss_fn(outputs, target)
             loss.backward()
 
             optimizer.step()
             ema.update_parameters(model)
 
-            epoch_loss += loss.item() * x1.shape[0]
+            epoch_loss += loss.item() * outputs.shape[0]
 
         return epoch_loss / len(training_loader.dataset)
 

@@ -1,24 +1,56 @@
 import torch
 
 
-def sample_path_and_velocity(x0, x1, t):
-    t = t[:, None, None, None]
+class Sampler:
+    def __init__(self):
+        pass
 
-    path = (1 - t)*x0 + t*x1
-    velocity = x1 - x0
+    def sample(self):
+        raise NotImplementedError
 
-    return path, velocity
+    def predict(self):
+        raise NotImplementedError
 
 
-@torch.inference_mode()
-def euler_method_with_guidance(model, x0, c, w=1.0, steps=100):
-    x = x0.clone()
-    null_labels = 10 * torch.ones_like(c).to(x.device)
+class FlowSampler(Sampler):
+    def __init__(self):
+        super().__init__()
 
-    for k in range(steps):
-        t = (torch.ones(x.shape[0]) * k / steps).to(x.device)
-        v_c = model(x, t, c)
-        v_u = model(x, t, null_labels)
-        x += (1 / steps) * (v_u + w * (v_c - v_u))
+    def sample(self, x1, t):
+        t = torch.rand(x1.shape[0]).to(device)[:, None, None, None]
+        x0 = torch.randn_like(x1)
 
-    return x
+        path = (1 - t)*x0 + t*x1
+        velocity = x1 - x0
+
+        return path, velocity, t.squeeze()
+
+    @torch.inference_mode()
+    def predict(self, model, x0, c, w=1.0, steps=100):
+        # Euler method with guidance
+        x = x0.clone()
+        null_labels = 10 * torch.ones_like(c).to(x.device)
+
+        for k in range(steps):
+            t = (torch.ones(x.shape[0]) * k / steps).to(x.device)
+            v_c = model(x, t, c)
+            v_u = model(x, t, null_labels)
+            x += (1 / steps) * (v_u + w * (v_c - v_u))
+
+        return x
+
+
+class DiffusionSampler(Sampler):
+    def __init__(self, steps, betas):
+        super().__init__()
+        self.T = steps
+        self._alphas = torch.cumprod(1 - betas, dim=0)
+
+    def sample(self, x0):
+        t = torch.randint(0, self.T, x1.shape[0]).to(device)[:, None, None, None]
+        _at = self._alphas.to(t.device)[t][:, None, None, None]
+        noise = torch.randn_like(x0)
+
+        path = torch.sqrt(_at) * x0 + torch.sqrt(1 - _at) * noise
+
+        return path, noise, t.squeeze()
