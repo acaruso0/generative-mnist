@@ -1,6 +1,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .sampling import DiffusionSampler, FlowSampler
+
+
+def sampler_from_dict(**kwargs):
+    if kwargs['architecture'] == 'diffusion':
+        sampler = DiffusionSampler(kwargs['schedule'])
+    elif kwargs['architecture'] == 'flow-matching':
+        sampler = FlowSampler()
+    return sampler
+
 def matplotlib_imshow(img, one_channel=False):
     if one_channel:
         img = img.mean(dim=0)

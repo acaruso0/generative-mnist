@@ -16,8 +16,8 @@ class FlowSampler(Sampler):
     def __init__(self):
         super().__init__()
 
-    def sample(self, x1, t):
-        t = torch.rand(x1.shape[0]).to(device)[:, None, None, None]
+    def sample(self, x1):
+        t = torch.rand(x1.shape[0]).to(x1.device)[:, None, None, None]
         x0 = torch.randn_like(x1)
 
         path = (1 - t)*x0 + t*x1
@@ -41,16 +41,21 @@ class FlowSampler(Sampler):
 
 
 class DiffusionSampler(Sampler):
-    def __init__(self, steps, betas):
+    def __init__(self, schedule):
         super().__init__()
-        self.T = steps
-        self._alphas = torch.cumprod(1 - betas, dim=0)
+        self.T = schedule['steps']
+        self.betas = torch.linspace(**schedule)
+        self._alphas = torch.cumprod(1 - self.betas, dim=0)
 
     def sample(self, x0):
-        t = torch.randint(0, self.T, x1.shape[0]).to(device)[:, None, None, None]
+        t = torch.randint(0, self.T, x0.shape[0]).to(x0.device)[:, None, None, None]
         _at = self._alphas.to(t.device)[t][:, None, None, None]
         noise = torch.randn_like(x0)
 
         path = torch.sqrt(_at) * x0 + torch.sqrt(1 - _at) * noise
 
         return path, noise, t.squeeze()
+
+    @torch.inference_mode()
+    def predict(self, model, x0, c, w=1.0, steps=100):
+        raise NotImplementedError

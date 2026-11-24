@@ -7,7 +7,7 @@ from datetime import datetime
 
 from .data import training_loader
 from .model import UNet
-from .sampling import DiffusionSampler, FlowSampler
+from .utils import sampler_from_dict
 
 
 if __name__ == "__main__":
@@ -17,11 +17,18 @@ if __name__ == "__main__":
     arch = sys.argv[1]
     assert(arch == '--diffusion' or arch == '--flow')
     if arch == '--diffusion':
-        steps = 1000
-        betas = torch.linspace(1e-4, 0.02, steps)
-        sampler = DiffusionSampler(steps, betas)
-    else if arch == '--flow':
-        sampler = FlowSampler()
+        sampler_kwargs = {
+            'architecture': 'diffusion',
+            'schedule': {'start': 1e-4,
+                         'end': 0.02,
+                         'steps': 1000},
+        }
+    elif arch == '--flow':
+        sampler_kwargs = {
+            'architecture': 'flow-matching',
+        }
+    sampler = sampler_from_dict(**sampler_kwargs)
+
     model = UNet().to(device)
 
     loss_fn = torch.nn.MSELoss()
@@ -37,7 +44,7 @@ if __name__ == "__main__":
 
             inputs, labels = inputs.to(device), labels.to(device)
 
-            path, target = sampler.sample(inputs)
+            path, target, time = sampler.sample(inputs)
 
             optimizer.zero_grad()
             outputs = model(path, time, labels)
@@ -57,12 +64,12 @@ if __name__ == "__main__":
     writer = SummaryWriter(f'runs/digits_trainer_{timestamp}')
 
     epoch_number = 0
-    EPOCHS = 100
+    EPOCHS = 3
     for epoch in range(EPOCHS):
         print(f'EPOCH {epoch_number + 1}:')
 
         model.train(True)
-        avg_loss = train_one_epoch(epoch_number, writer)
+        avg_loss = train_one_epoch()
 
         print(f'LOSS train {avg_loss}')
         writer.add_scalar('Loss/train', avg_loss, epoch_number + 1)
@@ -77,4 +84,5 @@ if __name__ == "__main__":
         "ema": ema.module.state_dict(),
         "optimizer": optimizer.state_dict(),
         "epoch": epoch_number,
+        "sampler_kwargs": sampler_kwargs,
     }, model_path)
