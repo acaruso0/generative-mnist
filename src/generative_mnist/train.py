@@ -22,10 +22,12 @@ if __name__ == "__main__":
             'schedule': {'start': 1e-4,
                          'end': 0.02,
                          'steps': 1000},
+            'device': device,
         }
     elif arch == '--flow':
         sampler_kwargs = {
             'architecture': 'flow-matching',
+            'device': device,
         }
     sampler = sampler_from_dict(**sampler_kwargs)
 

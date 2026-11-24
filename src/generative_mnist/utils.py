@@ -6,9 +6,9 @@ from .sampling import DiffusionSampler, FlowSampler
 
 def sampler_from_dict(**kwargs):
     if kwargs['architecture'] == 'diffusion':
-        sampler = DiffusionSampler(kwargs['schedule'])
+        sampler = DiffusionSampler(kwargs['schedule'], kwargs['device'])
     elif kwargs['architecture'] == 'flow-matching':
-        sampler = FlowSampler()
+        sampler = FlowSampler(kwargs['device'])
     return sampler
 
 def matplotlib_imshow(img, one_channel=False):
