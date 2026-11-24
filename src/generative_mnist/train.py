@@ -64,7 +64,7 @@ if __name__ == "__main__":
     writer = SummaryWriter(f'runs/digits_trainer_{timestamp}')
 
     epoch_number = 0
-    EPOCHS = 3
+    EPOCHS = 25
     for epoch in range(EPOCHS):
         print(f'EPOCH {epoch_number + 1}:')
 

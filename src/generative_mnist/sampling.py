@@ -48,13 +48,13 @@ class DiffusionSampler(Sampler):
         self._alphas = torch.cumprod(1 - self.betas, dim=0)
 
     def sample(self, x0):
-        t = torch.randint(0, self.T, x0.shape[0]).to(x0.device)[:, None, None, None]
+        t = torch.randint(0, self.T, (x0.shape[0],)).to(x0.device)
         _at = self._alphas.to(t.device)[t][:, None, None, None]
         noise = torch.randn_like(x0)
 
         path = torch.sqrt(_at) * x0 + torch.sqrt(1 - _at) * noise
 
-        return path, noise, t.squeeze()
+        return path, noise, t
 
     @torch.inference_mode()
     def predict(self, model, x0, c, w=1.0, steps=100):
