@@ -70,9 +70,9 @@ if __name__ == "__main__":
 
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    writer = SummaryWriter(f'runs/{mode[2:]}/{timestamp}')
+    writer = SummaryWriter(f'runs/{mode}/{timestamp}')
 
-    os.makedirs(f'ckpts/{mode[2:]}', exist_ok=True)
+    os.makedirs(f'ckpts/{mode}', exist_ok=True)
 
     epoch_number = 0
     EPOCHS = 50
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
         epoch_number += 1
 
-    model_path = f'ckpts/{mode[2:]}/{timestamp}_{epoch_number}'
+    model_path = f'ckpts/{mode}/{timestamp}_{epoch_number}'
     torch.save({
         "model": model.state_dict(),
         "ema": ema.module.state_dict(),

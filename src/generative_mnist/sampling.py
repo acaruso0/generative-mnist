@@ -61,7 +61,7 @@ class DiffusionSampler(Sampler):
 
     @torch.inference_mode()
     def predict(self, model, x1, c, w=1.0):
-        # Ancestral sampling (DDPM) with classifier-free guidance.
+        # DDPM with classifier-free guidance.
         x = x1.clone()
         c_b = torch.cat([c, torch.full_like(c, 10)])
 
