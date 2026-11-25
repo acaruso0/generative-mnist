@@ -7,7 +7,7 @@ from .sampling import DiffusionSampler, FlowSampler
 def sampler_from_dict(**kwargs):
     if kwargs['architecture'] == 'diffusion':
         sampler = DiffusionSampler(kwargs['schedule'], kwargs['device'])
-    elif kwargs['architecture'] == 'flow-matching':
+    elif kwargs['architecture'] == 'flow':
         sampler = FlowSampler(kwargs['device'])
     return sampler
 
