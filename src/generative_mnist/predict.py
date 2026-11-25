@@ -26,7 +26,7 @@ if __name__ == "__main__":
     with torch.inference_mode():
         if architecture == 'diffusion':
             x = sampler.predict(model, inputs, labels, w=5.0)
-        if architecture == 'flow-matching':
+        if architecture == 'flow':
             x = sampler.predict(model, inputs, labels, w=5.0, steps=250)
 
     x = x.cpu()
