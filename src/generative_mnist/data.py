@@ -13,8 +13,11 @@ transform = v2.Compose([
     v2.Normalize((0.5,), (0.5,))
 ])
 
-training_set = torchvision.datasets.MNIST('/home/betelgeuse/codes/generative-mnist/data', train=True, transform=transform, download=True)
+training_set = torchvision.datasets.MNIST('./data', train=True, transform=transform, download=True)
+validation_set = torchvision.datasets.MNIST('./data', train=False, transform=transform, download=True)
+
 training_loader = torch.utils.data.DataLoader(training_set, batch_size=128, shuffle=True)
+validation_loader = torch.utils.data.DataLoader(validation_set, batch_size=128, shuffle=False)
 
 
 if __name__ == "__main__":
@@ -22,6 +25,7 @@ if __name__ == "__main__":
     images, labels = next(dataiter)
 
     print(f'Training set has {len(training_set)} instances')
+    print(f'Validation set has {len(validation_set)} instances')
 
     print(f'Shape of batched digit images: {images.shape}')
     print(f'Shape of batched labels: {labels.shape}')
