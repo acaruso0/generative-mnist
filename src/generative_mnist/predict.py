@@ -27,7 +27,7 @@ if __name__ == "__main__":
         if architecture == 'diffusion':
             x = sampler.predict(model, inputs, labels, w=5.0)
         if architecture == 'flow':
-            x = sampler.predict(model, inputs, labels, w=5.0, steps=250)
+            x = sampler.predict(model, inputs, labels, w=5.0, steps=500)
 
     x = x.cpu()
     img_grid = torchvision.utils.make_grid(x, nrow=5)

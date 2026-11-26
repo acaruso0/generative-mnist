@@ -21,7 +21,7 @@ if __name__ == "__main__":
             'architecture': mode,
             'schedule': {'start': 1e-4,
                          'end': 0.02,
-                         'steps': 1000},
+                         'steps': 1500},
             'device': device,
         }
     elif mode == 'flow':
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     os.makedirs(f'ckpts/{mode}', exist_ok=True)
 
     epoch_number = 0
-    EPOCHS = 50
+    EPOCHS = 100
     for epoch in range(EPOCHS):
         print(f'EPOCH {epoch_number + 1}:')
 
@@ -92,16 +92,16 @@ if __name__ == "__main__":
                 if mode == 'diffusion':
                     voutputs = sampler.predict(model, vinputs, vlabels, w=5.0)
                 if mode == 'flow':
-                    voutputs = sampler.predict(model, vinputs, vlabels, w=5.0, steps=250)
+                    voutputs = sampler.predict(model, vinputs, vlabels, w=5.0, steps=500)
                 voutputs = classifier(voutputs)
                 vloss = vloss_fn(voutputs, vlabels)
                 avg_vloss += vloss.item() * voutputs.shape[0]
             avg_vloss /= 1000
             
             # Just for funzies
-            vlabels_pred = voutputs.argmax(dim=1)
-            print(f'Conditioning labels: {vlabels[:20].tolist()}')
-            print(f'Classifier predicts: {vlabels_pred[:20].tolist()}')
+            # vlabels_pred = voutputs.argmax(dim=1)
+            # print(f'Conditioning labels: {vlabels[:20].tolist()}')
+            # print(f'Classifier predicts: {vlabels_pred[:20].tolist()}')
 
         print(f'LOSS train {avg_loss:.4f} valid {avg_vloss:.4f}')
         writer.add_scalar('Loss/train', avg_loss, epoch_number + 1)
