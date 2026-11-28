@@ -33,4 +33,6 @@ if __name__ == "__main__":
     img_grid = torchvision.utils.make_grid(x, nrow=5)
     matplotlib_imshow(img_grid, one_channel=True)
 
+    plt.tight_layout()
+    plt.savefig(f'{architecture}.png', format='png', dpi=300)
     plt.show()

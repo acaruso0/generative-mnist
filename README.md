@@ -11,4 +11,6 @@ uv run python -m generative_mnist.train_classifier
 uv run python -m generative_mnist.train --flow --classifier "ckpts/classifier/20261125_174016_10"
 
 ## Predict and visualize a 5x10 grid of conditioned labels
-uv run python -m generative_mnist.predict "ckpts/diffusion_20261124_171948/diffusion_20261124_171948_100"
+uv run python -m generative_mnist.predict "ckpts/flow/20261125_223139_100"
+
+![Flow-matching on MNIST](figures/flow.png)
